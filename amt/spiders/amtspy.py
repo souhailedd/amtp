@@ -6,6 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from scrapy.downloadermiddlewares.httpproxy import HttpProxyMiddleware
+from io import BytesIO
 
 class AmtspySpider(scrapy.Spider):
     name = "amtspy"
@@ -55,9 +56,10 @@ class AmtspySpider(scrapy.Spider):
             current_datetime = datetime.now()
             date_string = current_datetime.strftime("%Y-%m-%d_%H-%M")  # Format as "YYYY-MM-DD_HH-MM"
 
-            # Create the file name with the date and export the DataFrame to an Excel file
-            file_name = f"scraped_data_{date_string}.xlsx"
-            df.to_excel(file_name, index=False)
+            # Create a BytesIO object for the Excel file
+            excel_data = BytesIO()
+            df.to_excel(excel_data, index=False)
+            excel_data.seek(0)
 
             # Email settings
             sender_email = "skylarroyal333@gmail.com"  # Your Gmail email address
@@ -73,11 +75,10 @@ class AmtspySpider(scrapy.Spider):
             msg["Subject"] = subject
             msg.attach(MIMEText(message, "plain"))
 
-            # Attach the scraped data file
-            with open(file_name, "rb") as file:
-                part = MIMEApplication(file.read(), Name=file_name)
-                part["Content-Disposition"] = f'attachment; filename="{file_name}"'
-                msg.attach(part)
+            # Attach the scraped data as an Excel file
+            part = MIMEApplication(excel_data.read(), Name=f"scraped_data_{date_string}.xlsx")
+            part["Content-Disposition"] = f'attachment; filename="scraped_data_{date_string}.xlsx"'
+            msg.attach(part)
 
             # Send the email
             try:
@@ -89,3 +90,9 @@ class AmtspySpider(scrapy.Spider):
                 print("Email sent successfully.")
             except Exception as e:
                 print(f"Email could not be sent: {e}")
+
+
+
+
+
+
